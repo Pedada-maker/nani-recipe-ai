@@ -8,14 +8,11 @@ import io
 import time
 import random
 
-# Load API keys
 load_dotenv()
 openai.api_key = st.secrets.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY"))
 
-# Set page config
 st.set_page_config("Nani's Recipe AI", "👵", layout="wide")
 
-# Session state setup
 for key in ["messages", "recipe_count", "is_loading", "awaiting_clarification"]:
     if key not in st.session_state:
         st.session_state[key] = [] if key == "messages" else False
@@ -26,7 +23,6 @@ LOADING_MESSAGES = [
     "Kitchen mein dekh rahi hun... 🥘"
 ]
 
-# Function: Ask max 2 clarifying questions
 @st.cache_data(show_spinner=False)
 def get_recipe_from_nani(ingredients, user_preferences=""):
     prompt = f"""
@@ -46,7 +42,6 @@ def get_recipe_from_nani(ingredients, user_preferences=""):
     )
     return response.choices[0].text.strip()
 
-# Function: Final recipe generation
 @st.cache_data(show_spinner=False)
 def get_final_recipe_from_nani(ingredients, preferences):
     prompt = f"""
@@ -73,7 +68,6 @@ def get_final_recipe_from_nani(ingredients, preferences):
     )
     return response.choices[0].text.strip()
 
-# Function: Generate image
 @st.cache_data(show_spinner=False)
 def generate_dish_image(recipe_name):
     prompt = f"A homemade {recipe_name}, Indian kitchen setup, natural light"
@@ -81,21 +75,19 @@ def generate_dish_image(recipe_name):
     img = Image.open(io.BytesIO(requests.get(img_url).content))
     return img
 
-# Chat UI
 st.title("👵 Nani's Recipe AI")
 chat_box = st.container()
 
-# Handle new message
 with st.form("chat", clear_on_submit=True):
     user_input = st.text_input("What ingredients do you have, beta?", key="input")
     submitted = st.form_submit_button("Send")
 
 if submitted and user_input:
     st.session_state.messages.append({"role": "user", "content": user_input})
+    st.session_state.messages.append({"role": "assistant", "content": random.choice(LOADING_MESSAGES)})
     st.session_state.is_loading = True
     st.rerun()
 
-# Render chat
 with chat_box:
     for msg in st.session_state.messages:
         if msg['role'] == 'user':
@@ -105,28 +97,26 @@ with chat_box:
             if 'image' in msg:
                 st.image(msg['image'])
 
-# Loading + respond
 if st.session_state.is_loading:
-    # Show loader
-    st.markdown(f"**Nani:** {random.choice(LOADING_MESSAGES)}")
-    time.sleep(2)
-    
-    user_msg = [m for m in st.session_state.messages if m['role'] == 'user'][-1]['content']
+    time.sleep(2)  # Show thinking message before generating
+
+    user_msgs = [m['content'] for m in st.session_state.messages if m['role'] == 'user']
+    last_user = user_msgs[-1] if user_msgs else ""
 
     if not st.session_state.awaiting_clarification:
-        response = get_recipe_from_nani(user_msg)
-        st.session_state.messages.append({"role": "assistant", "content": response})
+        response = get_recipe_from_nani(last_user)
+        st.session_state.messages[-1] = {"role": "assistant", "content": response}
         st.session_state.awaiting_clarification = True
     else:
-        ingredients = next(m['content'] for m in st.session_state.messages if m['role'] == 'user')
-        preferences = user_msg
+        ingredients = user_msgs[0] if len(user_msgs) >= 1 else ""
+        preferences = last_user
         recipe = get_final_recipe_from_nani(ingredients, preferences)
         name_line = next((line for line in recipe.split('\n') if '**🍳 Recipe:' in line), "")
         recipe_name = name_line.replace("**🍳 Recipe:", "").replace("**", "").strip()
         image = generate_dish_image(recipe_name)
-        st.session_state.messages.append({"role": "assistant", "content": recipe, "image": image})
+        st.session_state.messages[-1] = {"role": "assistant", "content": recipe, "image": image}
         st.session_state.awaiting_clarification = False
 
-    st.session_state.recipe_count = st.session_state.recipe_count + 1
+    st.session_state.recipe_count += 1
     st.session_state.is_loading = False
     st.rerun()
