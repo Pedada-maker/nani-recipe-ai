@@ -222,87 +222,35 @@ st.markdown("""
         line-height: 1.4;
     }
     
-    /* Input section */
-    .input-section {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background-color: #f1f5f9;
-        padding: 1rem;
-        border-top: 1px solid #e2e8f0;
+    /* Voice button styling */
+    .voice-btn {
+        background-color: #fbbf24 !important;
+        border: none !important;
+        border-radius: 50% !important;
+        width: 3rem !important;
+        height: 3rem !important;
+        font-size: 1.25rem !important;
+        cursor: pointer !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: all 0.2s !important;
+        margin-bottom: 1rem !important;
     }
     
-    .input-container {
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
-        background-color: #e7eef3;
-        border-radius: 1.5rem;
-        padding: 0.5rem;
+    .voice-btn:hover {
+        background-color: #f59e0b !important;
+        transform: scale(1.05) !important;
     }
     
-    .voice-input-btn {
-        background-color: #fbbf24;
-        border: none;
-        border-radius: 50%;
-        width: 3rem;
-        height: 3rem;
-        font-size: 1.25rem;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s;
-    }
-    
-    .voice-input-btn:hover {
-        background-color: #f59e0b;
-        transform: scale(1.05);
-    }
-    
-    .voice-input-btn.recording {
-        background-color: #ef4444;
-        animation: pulse-red 1s ease-in-out infinite;
+    .voice-btn.recording {
+        background-color: #ef4444 !important;
+        animation: pulse-red 1s ease-in-out infinite !important;
     }
     
     @keyframes pulse-red {
         0%, 100% { opacity: 1; }
         50% { opacity: 0.7; }
-    }
-    
-    .text-input {
-        flex: 1;
-        border: none;
-        background: transparent;
-        padding: 0.75rem;
-        font-size: 1rem;
-        outline: none;
-        color: #0e161b;
-    }
-    
-    .text-input::placeholder {
-        color: #4e7a97;
-    }
-    
-    .send-btn {
-        background-color: #1993e5;
-        color: white;
-        border: none;
-        border-radius: 1.25rem;
-        padding: 0.75rem 1.5rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    
-    .send-btn:hover {
-        background-color: #1e40af;
-    }
-    
-    .send-btn:disabled {
-        background-color: #94a3b8;
-        cursor: not-allowed;
     }
     
     /* Mobile optimizations */
@@ -325,10 +273,10 @@ st.markdown("""
             font-size: 0.8rem;
         }
         
-        .voice-input-btn {
-            width: 2.5rem;
-            height: 2.5rem;
-            font-size: 1rem;
+        .voice-btn {
+            width: 2.5rem !important;
+            height: 2.5rem !important;
+            font-size: 1rem !important;
         }
         
         .recipe-card {
@@ -348,6 +296,8 @@ if 'is_loading' not in st.session_state:
     st.session_state.is_loading = False
 if 'awaiting_clarification' not in st.session_state:
     st.session_state.awaiting_clarification = False
+if 'voice_input' not in st.session_state:
+    st.session_state.voice_input = ""
 
 # Nani's loading messages
 LOADING_MESSAGES = [
@@ -358,61 +308,6 @@ LOADING_MESSAGES = [
     "Gharelu nuskha yaad kar rahi hun... 💭",
     "Pyaar se recipe banati hun... ❤️"
 ]
-
-# Voice recognition JavaScript
-voice_js = """
-<script>
-let recognition;
-let isRecording = false;
-
-function startVoiceInput() {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        alert('Voice input not supported in this browser, beta!');
-        return;
-    }
-    
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognition = new SpeechRecognition();
-    
-    recognition.lang = 'hi-IN';
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    
-    recognition.onstart = function() {
-        isRecording = true;
-        document.getElementById('voice-btn').classList.add('recording');
-        document.getElementById('voice-btn').innerHTML = '🎙️';
-    };
-    
-    recognition.onresult = function(event) {
-        const transcript = event.results[0][0].transcript;
-        document.getElementById('text-input').value = transcript;
-        document.getElementById('text-input').focus();
-    };
-    
-    recognition.onerror = function(event) {
-        console.error('Speech recognition error:', event.error);
-        alert('Kuch problem ho gayi, beta. Phir se try karo!');
-    };
-    
-    recognition.onend = function() {
-        isRecording = false;
-        document.getElementById('voice-btn').classList.remove('recording');
-        document.getElementById('voice-btn').innerHTML = '🎤';
-    };
-    
-    recognition.start();
-}
-
-function toggleVoiceInput() {
-    if (isRecording) {
-        recognition.stop();
-    } else {
-        startVoiceInput();
-    }
-}
-</script>
-"""
 
 def get_recipe_from_nani(ingredients, user_preferences=""):
     """Generate recipe using OpenAI GPT-4 with Nani's persona"""
@@ -605,24 +500,38 @@ with chat_container:
     
     st.markdown('</div>', unsafe_allow_html=True)
 
-# Input section
-st.markdown("""
-<div class="input-section">
-    <div class="input-container">
-        <button class="voice-input-btn" id="voice-btn" onclick="toggleVoiceInput()" title="Voice input - Nani sunegi!">🎤</button>
-        <input type="text" class="text-input" id="text-input" placeholder="Kya hai aaj fridge mein, beta?" />
-        <button class="send-btn" onclick="document.getElementById('send-form').submit()">Chalo, Nani ke saath pakao! 🍳</button>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+# Input section with voice support
+st.markdown("---")
+st.markdown("### 🎤 Voice Input (Beta)")
+st.markdown("*Click the button below and speak in Hindi or English - Nani will understand!*")
 
-# Hidden form for submission
-with st.form("send-form", clear_on_submit=True):
-    user_input = st.text_input("user_input", label_visibility="collapsed", key="hidden_input")
-    submitted = st.form_submit_button("Send", label_visibility="collapsed")
+# Simple voice input button
+if st.button("🎤 Voice Input", key="voice_button", help="Click and speak your ingredients!", use_container_width=False):
+    st.info("🎙️ Voice feature is being developed. For now, please type your ingredients below!")
+    st.session_state.voice_input = "Voice input clicked - feature coming soon!"
+
+# Text input section
+st.markdown("### ✍️ Type Your Ingredients")
+
+# Simple form for text input
+with st.form("ingredient_form", clear_on_submit=True):
+    user_input = st.text_area(
+        "What ingredients do you have at home?", 
+        placeholder="For example: rice, dal, onions, tomatoes, potatoes...",
+        help="Tell Nani what you have in your kitchen!",
+        key="text_input"
+    )
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        submitted = st.form_submit_button(
+            "🍳 Chalo, Nani ke saath pakao!", 
+            use_container_width=True,
+            type="primary"
+        )
 
 # Process input
-if submitted and user_input:
+if submitted and user_input.strip():
     # Add user message
     st.session_state.messages.append({"role": "user", "content": user_input})
     
@@ -643,6 +552,7 @@ if st.session_state.is_loading:
         # First interaction - ask clarifying questions
         response = get_recipe_from_nani(last_user_message)
         st.session_state.awaiting_clarification = True
+        st.session_state.messages.append({"role": "assistant", "content": response})
     else:
         # User has answered questions - give final recipe
         # Get ingredients from earlier messages
@@ -674,47 +584,41 @@ if st.session_state.is_loading:
         st.session_state.messages.append(bot_message)
         st.session_state.recipe_count += 1
         st.session_state.awaiting_clarification = False
-        st.rerun()
     
-    # Add response without image for clarification
-    if st.session_state.awaiting_clarification:
-        st.session_state.messages.append({"role": "assistant", "content": response})
-        st.rerun()
-
-# Add voice recognition JavaScript
-st.markdown(voice_js, unsafe_allow_html=True)
+    st.rerun()
 
 # Sidebar stats
-if st.session_state.recipe_count > 0:
-    with st.sidebar:
-        st.success(f"🎉 Nani ke recipes aaj: {st.session_state.recipe_count}")
-        if st.button("Chat clear karo"):
-            st.session_state.messages = []
-            st.session_state.recipe_count = 0
-            st.session_state.awaiting_clarification = False
-            st.rerun()
-
-# JavaScript to sync text input
-sync_js = """
-<script>
-// Sync hidden input with visible input
-document.addEventListener('DOMContentLoaded', function() {
-    const visibleInput = document.getElementById('text-input');
-    const hiddenInput = document.querySelector('input[aria-label="user_input"]');
+with st.sidebar:
+    st.markdown("### 📊 Nani's Kitchen Stats")
     
-    if (visibleInput && hiddenInput) {
-        visibleInput.addEventListener('input', function() {
-            hiddenInput.value = this.value;
-        });
-        
-        visibleInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                document.getElementById('send-form').querySelector('button').click();
-            }
-        });
-    }
-});
-</script>
-"""
+    if st.session_state.recipe_count > 0:
+        st.success(f"🎉 Recipes created today: {st.session_state.recipe_count}")
+    else:
+        st.info("🍳 No recipes yet - let's cook something!")
+    
+    st.markdown("---")
+    
+    if st.button("🧹 Clear Chat", use_container_width=True):
+        st.session_state.messages = []
+        st.session_state.recipe_count = 0
+        st.session_state.awaiting_clarification = False
+        st.session_state.is_loading = False
+        st.rerun()
+    
+    st.markdown("---")
+    st.markdown("### 💡 Tips")
+    st.markdown("""
+    - **Be specific**: List exact ingredients
+    - **Mention quantities**: "2 potatoes, 1 cup rice"
+    - **Include spices**: "I have garam masala, turmeric"
+    - **Voice feature**: Coming soon! 🎤
+    """)
 
-st.markdown(sync_js, unsafe_allow_html=True)
+# Footer info
+st.markdown("---")
+st.markdown("""
+<div style='text-align: center; color: #4e7a97; font-size: 0.9rem; padding: 1rem;'>
+    Made with ❤️ for home cooks everywhere | 
+    Your Nani is powered by AI but her love is real! 👵
+</div>
+""", unsafe_allow_html=True)
